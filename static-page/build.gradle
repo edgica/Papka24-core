@@ -189,10 +189,10 @@ task dist(type: Sync) {
     it.dependsOn build
     from project.tmpDir
     into project.distDir
-    preserve{
-        include 'plugin/**'
-        include 'cryptoplugin.cab'
-    }
+//    preserve{
+//        include 'plugin/**'
+//        include 'cryptoplugin.cab'
+//    }
 }
 
 task makedirs() {
