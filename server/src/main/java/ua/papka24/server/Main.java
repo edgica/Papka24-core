@@ -69,6 +69,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
+
 public class Main {
 
     public static String nodeName = "unknown";
@@ -198,6 +199,12 @@ public class Main {
 
             boolean emailServerEnabled = property.getProperty("emailServer.enabled","true").equals("true");
             new Thread(new PDFRenderQueueConsumer(renderQueue)).start();
+
+            log.info("EmailQueue: emailServerEnabled:{}", emailServerEnabled);
+            log.info("EmailQueue: emailServer.path:{}", property.getProperty("emailServer.path", "localhost"));
+            log.info("EmailQueue: emailServer.username:{}", property.getProperty("emailServer.username", null));
+            log.info("EmailQueue: emailServer.password:{}", property.getProperty("emailServer.password", null));
+            
             new Thread(new EmailQueueConsumer(emailQueue = CustomPriorityQuery.getQuery(emailServerEnabled), property.getProperty("emailServer.path", "localhost"),
                     Integer.parseInt(property.getProperty("emailServer.port", "25")),
                     property.getProperty("emailServer.username", null),
