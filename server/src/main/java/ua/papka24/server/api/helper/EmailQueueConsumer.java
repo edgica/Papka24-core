@@ -97,6 +97,7 @@ public class EmailQueueConsumer implements Runnable {
 
     private void sendEmails(){
         try {
+            log.info("Sending user email: {}");
             Session session = Session.getInstance(prop, null);
             EmailDTO emailDTO = null;
             if(!queue.isEmpty()) {
@@ -181,6 +182,7 @@ public class EmailQueueConsumer implements Runnable {
         while(emailEnabled && this.serviceSendEnabled) {
             try{
                 if (!queue.isEmpty()) {
+                    log.info("Calling sendEmails: {}");
                     sendEmails();
                 }
                 TimeUnit.SECONDS.sleep(10);

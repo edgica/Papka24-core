@@ -82,12 +82,16 @@ public class Registration extends REST {
                 return ERROR_BAD_REQUEST;
             } else {
                 UserDTO user = UserDAO.getInstance().getUser(data.getLogin());
+                log.info("user data:{}",user);
                 if (user == null) {
+                    log.info("registering a new user:{}");
                     String secret = new BigInteger(128, random).toString(32);
                     // Установка
                     map.put(secret, data);
                     RedisDAOManager.getInstance().saveRegResInfo(secret,jsonRequest);
+                    log.info("New user has been saved into Redis instance:{}");
                     EmailHelper.sendInviteEmail(data.getLogin(), data.getName(), secret);
+                    log.info("Email has been sent to the new user:{}");
                     return Response.ok().build();
                 } else {
                     return ERROR_CONFLICT;
