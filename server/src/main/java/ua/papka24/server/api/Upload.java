@@ -69,6 +69,7 @@ public class Upload implements HttpHandler {
 
     @Override
     public void handle(HttpExchange t) throws IOException {
+        log.info("Uploading file started...");
         boolean multipart = false;
         if (!t.getRequestHeaders().containsKey("sessionid")) {
             while (t.getRequestBody().read() != -1) {
@@ -93,6 +94,7 @@ public class Upload implements HttpHandler {
             } else {
                 //заполнение mdc
                 try {
+                    log.info("Uploading file: Session ID is correct");
                     MDC.remove("message");
                     MDC.remove("request");
                     MDC.put("user_login", session.getUser().getLogin());
@@ -105,6 +107,7 @@ public class Upload implements HttpHandler {
                 //иначе даже при блокировки доступ у загружке будет до перегрузки страницы, прихода обновленных данных от сервера
                 //todo сделать паралельно запрос с отказом по факту блокирования
                 List<Long> blocks = BillingDAO.getInstance().checkBlockedState(session.getUser().getLogin());
+                log.info("Uploading file: checkBlockedState, blocks size:" + blocks.size());
                 if (blocks.size() != 0) {
                     while (t.getRequestBody().read() != -1) {
                     }
@@ -131,6 +134,7 @@ public class Upload implements HttpHandler {
             avatarId = t.getRequestHeaders().get("avatar").get(0);
         }
 
+        log.info("Uploading file: checkBlockedState, filename:" + fileName);
         GOST3411 gostDigest = null;
         if (avatarId == null) {
             // Skip init hash for avatar loading
@@ -141,6 +145,8 @@ public class Upload implements HttpHandler {
             multipart = true;
         }
         File uploadedFileLocation = File.createTempFile("temp", Long.toString(System.nanoTime()));
+
+        log.info("Uploading file: uploadedFileLocation:" + uploadedFileLocation.toString());
 
         OutputStream fos = null;
         int firstLineSize = 0;
@@ -210,12 +216,14 @@ public class Upload implements HttpHandler {
                     }
                 }
                 fos.flush();
+                log.info("Uploading file: upload file has been completed");
             } else {
                 String response = "Incorrect data";
                 t.sendResponseHeaders(400, response.length());
                 OutputStream os = t.getResponseBody();
                 os.write(response.getBytes());
                 os.close();
+                log.info("Uploading file: error during upload file:" + response);
             }
         } catch (FileNotFoundException e) {
             Main.log.error(e.toString());
@@ -224,6 +232,7 @@ public class Upload implements HttpHandler {
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
+            log.info("Uploading file: error during upload file:" + e.toString());
         } finally {
             if (fos != null) fos.close();
         }
@@ -231,6 +240,7 @@ public class Upload implements HttpHandler {
 
         if (avatarId != null) {
             // Сохраняется аватар пользователя
+            log.info("Uploading file: Saving avatar:" + newName);
             try {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 if (!Files.isDirectory(Paths.get(Main.CDNPath, "avatars"))) {
@@ -251,6 +261,7 @@ public class Upload implements HttpHandler {
                 os.write(response.getBytes());
                 os.close();
                 bos.close();
+                log.info("Uploading file: Saving avatar has been completed");
             } catch (IOException e) {
                 Main.log.error("Can's save avatar for login " + session.getUser().getLogin(), e);
                 String response = "Unsupported Media Type";
@@ -258,6 +269,7 @@ public class Upload implements HttpHandler {
                 OutputStream os = t.getResponseBody();
                 os.write(response.getBytes());
                 os.close();
+                log.info("Uploading file: Can's save avatar for login");
             }
         } else {
             ArrayList<String> cmsSignsWithoutData = new ArrayList<>();
@@ -266,6 +278,8 @@ public class Upload implements HttpHandler {
             byte[] pdfOrig = Files.readAllBytes(uploadedFileLocation.toPath());
             byte[] pdfWithCmsSign = getLastCmsFromMedoc(pdfOrig);
             byte[] pdfWithoutSigns;
+
+            log.info("Uploading file: Checking CMS subscription");
 
             try {
                 pdfWithoutSigns = CryptoniteX.cmsGetData(pdfOrig);
@@ -285,6 +299,7 @@ public class Upload implements HttpHandler {
             }
 
             // Сохраняется документ пользователя
+            log.info("Uploading file: Saving user document");
             int type = ResourceDTO.detectType(detector.detect(uploadedFileLocation));
             if (type != ResourceDTO.TYPE_PDF) {
                 Files.delete(uploadedFileLocation.toPath());
@@ -293,6 +308,7 @@ public class Upload implements HttpHandler {
                 OutputStream os = t.getResponseBody();
                 os.write(response.getBytes());
                 os.close();
+                log.info("Uploading file: Unsupported Media Type");
                 return;
             }
 
@@ -320,6 +336,7 @@ public class Upload implements HttpHandler {
                 os.write(response);
                 os.close();
                 BillingHelper.getInstance().create(oldRes);
+                log.info("Uploading file: resource found by hash - clonned");
                 return;
             }
 
@@ -354,6 +371,7 @@ public class Upload implements HttpHandler {
                     log.warn("likely broken pipe error: {}", ex.getMessage());
                 }
                 log.info("upload file:{}:{}:{}:{}:res->{}", session.getSessionId(), session.getUser().getLogin(), fileName, size, newResource, Event.ADD_RESOURCE);
+                log.info("Upload file completed!");
             } catch (IOException e) {
                 log.error("error upload file", e);
                 if (cdnPDFPath.toFile().exists()) {
