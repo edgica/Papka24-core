@@ -107,8 +107,8 @@ public class Upload implements HttpHandler {
                 //иначе даже при блокировки доступ у загружке будет до перегрузки страницы, прихода обновленных данных от сервера
                 //todo сделать паралельно запрос с отказом по факту блокирования
                 List<Long> blocks = BillingDAO.getInstance().checkBlockedState(session.getUser().getLogin());
-                log.info("Uploading file: checkBlockedState, blocks size:" + blocks.size());
                 if (blocks.size() != 0) {
+                    log.info("Uploading file: checkBlockedState, blocks size:" + blocks.size());
                     while (t.getRequestBody().read() != -1) {
                     }
                     StringJoiner joiner = new StringJoiner(",");
@@ -134,8 +134,8 @@ public class Upload implements HttpHandler {
             avatarId = t.getRequestHeaders().get("avatar").get(0);
         }
 
-        log.info("Uploading file: checkBlockedState, filename:" + fileName);
         GOST3411 gostDigest = null;
+        log.info("Uploading file: checkBlockedState, filename:" + fileName);
         if (avatarId == null) {
             // Skip init hash for avatar loading
             gostDigest = CryptoManager.getGost34311();
@@ -146,9 +146,8 @@ public class Upload implements HttpHandler {
         }
         File uploadedFileLocation = File.createTempFile("temp", Long.toString(System.nanoTime()));
 
-        log.info("Uploading file: uploadedFileLocation:" + uploadedFileLocation.toString());
-
         OutputStream fos = null;
+        log.info("Uploading file: uploadedFileLocation:" + uploadedFileLocation.toString());
         int firstLineSize = 0;
         try {
             int l;
@@ -216,33 +215,33 @@ public class Upload implements HttpHandler {
                     }
                 }
                 fos.flush();
-                log.info("Uploading file: upload file has been completed");
             } else {
                 String response = "Incorrect data";
+                log.info("Uploading file: upload file has been completed");
                 t.sendResponseHeaders(400, response.length());
                 OutputStream os = t.getResponseBody();
                 os.write(response.getBytes());
                 os.close();
-                log.info("Uploading file: error during upload file:" + response);
             }
         } catch (FileNotFoundException e) {
+            log.info("Uploading file: error during upload file:" + response);
             Main.log.error(e.toString());
             String response = "Can't save file";
             t.sendResponseHeaders(500, response.length());
             OutputStream os = t.getResponseBody();
             os.write(response.getBytes());
             os.close();
-            log.info("Uploading file: error during upload file:" + e.toString());
         } finally {
             if (fos != null) fos.close();
+            log.info("Uploading file: error during upload file:" + e.toString());
         }
         String newName = avatarId == null ? Base64.getUrlEncoder().withoutPadding().encodeToString(gostDigest.doFinal()) : null;
 
         if (avatarId != null) {
             // Сохраняется аватар пользователя
-            log.info("Uploading file: Saving avatar:" + newName);
             try {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                log.info("Uploading file: Saving avatar:" + newName);
                 if (!Files.isDirectory(Paths.get(Main.CDNPath, "avatars"))) {
                     Files.createDirectories(Paths.get(Main.CDNPath, "avatars"));
                 }
@@ -263,7 +262,7 @@ public class Upload implements HttpHandler {
                 bos.close();
                 log.info("Uploading file: Saving avatar has been completed");
             } catch (IOException e) {
-                Main.log.error("Can's save avatar for login " + session.getUser().getLogin(), e);
+                Main.log.error("Can's save avatar for login " + session.getUser().getLogin(), e);                
                 String response = "Unsupported Media Type";
                 t.sendResponseHeaders(415, response.length());
                 OutputStream os = t.getResponseBody();
@@ -279,9 +278,8 @@ public class Upload implements HttpHandler {
             byte[] pdfWithCmsSign = getLastCmsFromMedoc(pdfOrig);
             byte[] pdfWithoutSigns;
 
-            log.info("Uploading file: Checking CMS subscription");
-
             try {
+                log.info("Uploading file: Checking CMS subscription");
                 pdfWithoutSigns = CryptoniteX.cmsGetData(pdfOrig);
                 gostDigest.update(pdfWithoutSigns, 0, pdfWithoutSigns.length);
                 newName = Base64.getUrlEncoder().withoutPadding().encodeToString(gostDigest.doFinal());
@@ -299,9 +297,9 @@ public class Upload implements HttpHandler {
             }
 
             // Сохраняется документ пользователя
-            log.info("Uploading file: Saving user document");
             int type = ResourceDTO.detectType(detector.detect(uploadedFileLocation));
             if (type != ResourceDTO.TYPE_PDF) {
+                log.info("Uploading file: Saving user document");
                 Files.delete(uploadedFileLocation.toPath());
                 String response = "Unsupported Media Type";
                 t.sendResponseHeaders(415, response.length());
